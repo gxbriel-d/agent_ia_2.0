@@ -76,8 +76,16 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
             return {"status": "ignored"}
         
         chat_id = data["message"]["chat"]["id"]
-        text = data["message"]["text"]
+        text = data["message"]["text"].strip()
         user_name = data["message"]["from"].get("first_name", "Cliente")
+        
+        # Comando para limpar memória da conversa (/reset, /start ou /limpar)
+        if text.lower() in ["/reset", "/limpar", "/start"]:
+            from app.core.redis import clear_session_state
+            clear_session_state(chat_id)
+            reset_msg = f"🔄 Olá, {user_name}! A memória da nossa conversa foi zerada. Como posso ajudar com o seu novo orçamento de vidraçaria hoje?"
+            background_tasks.add_task(send_telegram_messages_in_blocks, settings.TELEGRAM_BOT_TOKEN, chat_id, reset_msg)
+            return {"status": "session_reset"}
         
         # Salvar o nome do usuário no Redis se não existir
         session = get_session_state(chat_id)
@@ -85,7 +93,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
             session["user_name"] = user_name
             update_session_state(chat_id, session)
             
-        # Acionar buffer debounce de 15s
+        # Acionar buffer debounce de 3s
         background_tasks.add_task(
             handle_message_debounce, 
             chat_id, 
