@@ -47,8 +47,8 @@ async def send_telegram_messages_in_blocks(bot_token: str, chat_id: int, full_te
             except Exception as e:
                 logger.warning(f"Não foi possível enviar typing action: {e}")
             
-            # 2. Pausa assíncrona realista proporcional ao tamanho do texto (1.5s a 3.0s)
-            delay = min(3.0, max(1.5, len(bloco) * 0.02))
+            # 2. Pausa assíncrona ágil (0.5s a 1.0s)
+            delay = min(1.0, max(0.5, len(bloco) * 0.005))
             await asyncio.sleep(delay)
             
             # 3. Enviar bloco de mensagem via HTTP POST com fallback resiliente

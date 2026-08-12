@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     
     NEON_DATABASE_URL: str = ""
     REDIS_URL: str = "redis://localhost:6379/0"
-    DEBOUNCE_SECONDS: int = 15
+    DEBOUNCE_SECONDS: int = 3
     
     GOOGLE_CALENDAR_ID: str = "primary"
     GOOGLE_CALENDAR_CREDENTIALS_PATH: str = "credentials.json"
