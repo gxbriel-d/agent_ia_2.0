@@ -17,48 +17,52 @@ async def process_concatenated_messages(chat_id: int, full_text: str):
     Envia a frase concatenada para o LangGraph e responde no Telegram em blocos.
     """
     logger.info(f"[DEBOUNCE 15s EXPIRED] Processando mensagem para chat_id {chat_id}: '{full_text}'")
-    
-    # 1. Carregar estado da sessão volátil no Redis
-    session = get_session_state(chat_id)
-    history = session.get("messages", [])
-    history.append({"role": "user", "content": full_text})
-    
-    initial_state = {
-        "chat_id": chat_id,
-        "user_name": session.get("user_name", "Cliente Telegram"),
-        "messages": history,
-        "tipo_produto": session.get("tipo_produto"),
-        "largura_mm": session.get("largura_mm"),
-        "altura_mm": session.get("altura_mm"),
-        "tipo_vidro": session.get("tipo_vidro"),
-        "espessura_mm": session.get("espessura_mm"),
-        "cor_vidro": session.get("cor_vidro"),
-        "cor_aluminio": session.get("cor_aluminio"),
-        "quote_result": None,
-        "rag_result": None,
-        "calendar_result": None,
-        "next_node": ""
-    }
-    
-    # 2. Executar LangGraph
-    final_state = agent_graph.invoke(initial_state)
-    
-    # 3. Atualizar estado volátil no Redis
-    update_session_state(chat_id, {
-        "user_name": final_state.get("user_name"),
-        "messages": final_state.get("messages", [])[-10:], # Manter últimas 10 mensagens
-        "tipo_produto": final_state.get("tipo_produto"),
-        "largura_mm": final_state.get("largura_mm"),
-        "altura_mm": final_state.get("altura_mm"),
-        "tipo_vidro": final_state.get("tipo_vidro"),
-        "espessura_mm": final_state.get("espessura_mm"),
-        "cor_vidro": final_state.get("cor_vidro"),
-        "cor_aluminio": final_state.get("cor_aluminio")
-    })
-    
-    # 4. Pegar a última resposta do assistente e enviar no Telegram em blocos
-    last_assistant_msg = final_state["messages"][-1].get("content", "")
-    await send_telegram_messages_in_blocks(settings.TELEGRAM_BOT_TOKEN, chat_id, last_assistant_msg)
+    try:
+        # 1. Carregar estado da sessão volátil no Redis
+        session = get_session_state(chat_id)
+        history = session.get("messages", [])
+        history.append({"role": "user", "content": full_text})
+        
+        initial_state = {
+            "chat_id": chat_id,
+            "user_name": session.get("user_name", "Cliente Telegram"),
+            "messages": history,
+            "tipo_produto": session.get("tipo_produto"),
+            "largura_mm": session.get("largura_mm"),
+            "altura_mm": session.get("altura_mm"),
+            "tipo_vidro": session.get("tipo_vidro"),
+            "espessura_mm": session.get("espessura_mm"),
+            "cor_vidro": session.get("cor_vidro"),
+            "cor_aluminio": session.get("cor_aluminio"),
+            "quote_result": None,
+            "rag_result": None,
+            "calendar_result": None,
+            "next_node": ""
+        }
+        
+        # 2. Executar LangGraph
+        final_state = agent_graph.invoke(initial_state)
+        
+        # 3. Atualizar estado volátil no Redis
+        update_session_state(chat_id, {
+            "user_name": final_state.get("user_name"),
+            "messages": final_state.get("messages", [])[-10:], # Manter últimas 10 mensagens
+            "tipo_produto": final_state.get("tipo_produto"),
+            "largura_mm": final_state.get("largura_mm"),
+            "altura_mm": final_state.get("altura_mm"),
+            "tipo_vidro": final_state.get("tipo_vidro"),
+            "espessura_mm": final_state.get("espessura_mm"),
+            "cor_vidro": final_state.get("cor_vidro"),
+            "cor_aluminio": final_state.get("cor_aluminio")
+        })
+        
+        # 4. Pegar a última resposta do assistente e enviar no Telegram em blocos
+        last_assistant_msg = final_state["messages"][-1].get("content", "")
+        await send_telegram_messages_in_blocks(settings.TELEGRAM_BOT_TOKEN, chat_id, last_assistant_msg)
+    except Exception as e:
+        logger.error(f"Erro ao processar mensagem concatenada: {e}", exc_info=True)
+        fallback_msg = "Olá! Recebi sua solicitação de orçamento. Nosso consultor técnico está verificando os detalhes do seu projeto e em instantes entraremos em contato com a proposta comercial completa."
+        await send_telegram_messages_in_blocks(settings.TELEGRAM_BOT_TOKEN, chat_id, fallback_msg)
 
 @router.post("/webhook/telegram")
 async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):

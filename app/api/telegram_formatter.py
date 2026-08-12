@@ -51,12 +51,20 @@ async def send_telegram_messages_in_blocks(bot_token: str, chat_id: int, full_te
             delay = min(3.0, max(1.5, len(bloco) * 0.02))
             await asyncio.sleep(delay)
             
-            # 3. Enviar bloco de mensagem via HTTP POST
+            # 3. Enviar bloco de mensagem via HTTP POST com fallback resiliente
             try:
-                await client.post(url_send_message, json={
+                res = await client.post(url_send_message, json={
                     "chat_id": chat_id,
                     "text": bloco,
                     "parse_mode": "Markdown"
                 }, timeout=10.0)
+                
+                # Se o Telegram rejeitar o Markdown (HTTP status != 200 ou ok == false), tentar texto puro
+                if res.status_code != 200 or not res.json().get("ok"):
+                    logger.warning(f"Telegram rejeitou Markdown: {res.text}. Tentando envio em texto simples...")
+                    await client.post(url_send_message, json={
+                        "chat_id": chat_id,
+                        "text": bloco
+                    }, timeout=10.0)
             except Exception as e:
                 logger.error(f"Erro ao enviar bloco de mensagem no Telegram: {e}")
