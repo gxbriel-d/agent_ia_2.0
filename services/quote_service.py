@@ -21,7 +21,8 @@ class QuoteService:
         """
         Executa a matemática determinística de orçamento para a Confeitaria Cantinho Doce da Gabi.
         """
-        quote_id = f"GABI-{uuid.uuid4().hex[:8].upper()}"
+        raw_uuid = str(uuid.uuid4())
+        quote_id = f"GABI-{raw_uuid[:8].upper()}"
         categoria = params.get("categoria", "docinho_13g").lower()
         tipo_sabor = params.get("tipo_sabor", "tradicional").lower()
         quantidade = int(params.get("quantidade", 50))
@@ -174,7 +175,7 @@ class QuoteService:
                 VALUES (%s, %s, %s, %s, %s, 'emitido');
             """
             execute_write(sql_insert, (
-                quote_id.replace("GABI-", ""),
+                raw_uuid,
                 telegram_chat_id,
                 categoria,
                 json.dumps({"quantidade": quantidade, "sabores": sabores, "tipo_sabor": tipo_sabor}),
