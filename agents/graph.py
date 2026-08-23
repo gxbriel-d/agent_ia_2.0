@@ -13,7 +13,19 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 logger = logging.getLogger(__name__)
 
-# Prompt do Consultor de Atendimento e Encomendas da Confeitaria Cantinho Doce da Gabi
+import os
+
+def load_prompt(name: str) -> str:
+    """Carrega o prompt markdown correspondente da pasta prompts/"""
+    prompt_path = os.path.join(os.path.dirname(__file__), "..", "prompts", f"{name}.md")
+    if os.path.exists(prompt_path):
+        try:
+            with open(prompt_path, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception as e:
+            logger.warning(f"Não foi possível ler {prompt_path}: {e}")
+    return ""
+
 SYSTEM_PROMPT = """Você é a Consultora de Atendimento e Encomendas da confeitaria **Cantinho Doce da Gabi**! 🍰✨
 Sua missão é atender os clientes com carinho, doçura e profissionalismo, tirando dúvidas sobre nossos docinhos, pirulitos e bolos decorados/andar, montando os orçamentos oficiais e agendando a retirada ou entrega do pedido.
 
